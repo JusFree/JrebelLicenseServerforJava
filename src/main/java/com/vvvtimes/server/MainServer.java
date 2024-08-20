@@ -12,6 +12,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang.time.DateFormatUtils;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
@@ -65,7 +66,25 @@ public class MainServer extends AbstractHandler {
     @Override
     public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException {
-        System.out.println(target);
+        System.out.println(DateFormatUtils.format(new Date(), "yyyy-MM-dd HH:mm:ss") + ":URL--->" + target + "  Method--->" + request.getMethod());
+
+        if (target.indexOf("/Jrebel") >= 0 ) {
+            target = target.split("/Jrebel")[1];
+        }
+
+        if (target.indexOf("/HJ/") < 0 && target.indexOf("/LQH/") < 0) {
+                target = "ASDQE";
+        } else {
+            String charm = "";
+            if (target.indexOf("/HJ/") >= 0) {
+                charm = "/HJ/";
+            } else if (target.indexOf("/LQH/") >= 0) {
+                charm = "/LQH/";
+            }
+
+            String[] tempArr = target.split(charm);
+            target = tempArr[0] + "/" + tempArr[1];
+        }
         if (target.equals("/")) {
             indexHandler(target, baseRequest, request, response);
         } else if (target.equals("/jrebel/leases")) {
@@ -84,10 +103,19 @@ public class MainServer extends AbstractHandler {
             obtainTicketHandler(target, baseRequest, request, response);
         } else if (target.equals("/rpc/releaseTicket.action")) {
             releaseTicketHandler(target, baseRequest, request, response);
-        } else {
+        } else if (target.equals("/agent/features")) {
+            jrebelValidateHandler(target, baseRequest, request, response);
+        }else {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         }
     }
+
+    private void jrebelFeaturesHandler(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
+//        System.out.println("jrebelFeaturesHandler");
+        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+    }
+
+
 
     private void jrebelValidateHandler(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
         response.setContentType("application/json; charset=utf-8");
@@ -101,16 +129,23 @@ public class MainServer extends AbstractHandler {
                 "    \"statusCode\": \"SUCCESS\",\n" +
                 "    \"company\": \"Administrator\",\n" +
                 "    \"canGetLease\": true,\n" +
-                "    \"licenseType\": 1,\n" +
+                "    \"licenseType\": \"1\",\n" +
                 "    \"evaluationLicense\": false,\n" +
                 "    \"seatPoolType\": \"standalone\"\n" +
                 "}\n";
         JSONObject jsonObject = JSONObject.fromObject(jsonStr);
         String body = jsonObject.toString();
+//        System.out.println("validate 返回："+body);
         response.getWriter().print(body);
     }
 
     private void jrebelLeases1Handler(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String method = request.getMethod();
+        if (method.toLowerCase().equals("post")){
+            response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+            return;
+        }
+
         response.setContentType("application/json; charset=utf-8");
         response.setStatus(HttpServletResponse.SC_OK);
         String username = request.getParameter("username");
@@ -129,6 +164,7 @@ public class MainServer extends AbstractHandler {
             jsonObject.put("company", username);
         }
         String body = jsonObject.toString();
+//        System.out.println("/jrebel/leases/1 返回："+body);
         response.getWriter().print(body);
 
     }
@@ -139,7 +175,7 @@ public class MainServer extends AbstractHandler {
         String clientRandomness = request.getParameter("randomness");
         String username = request.getParameter("username");
         String guid = request.getParameter("guid");
-        System.out.println(((Request) request).getParameters());
+//        System.out.println(((Request) request).getParameters());
         boolean offline = Boolean.parseBoolean(request.getParameter("offline"));
         String validFrom = "null";
         String validUntil = "null";
@@ -186,6 +222,8 @@ public class MainServer extends AbstractHandler {
             jsonObject.put("signature", signature);
             jsonObject.put("company", username);
             String body = jsonObject.toString();
+
+//            System.out.println("/leases 返回："+body);
             response.getWriter().print(body);
         }
     }
